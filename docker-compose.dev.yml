@@ -1,0 +1,84 @@
+version: '3.9'
+
+# ================================================================
+# Development overrides — use with:
+# docker compose -f docker-compose.yml -f docker-compose.dev.yml up
+# ================================================================
+
+services:
+  postgres:
+    ports:
+      - "5432:5432"    # Expose for local tools (DBeaver, psql)
+    environment:
+      POSTGRES_PASSWORD: devpassword
+
+  redis:
+    ports:
+      - "6379:6379"    # Expose for local Redis CLI / RedisInsight
+    command: redis-server --requirepass devpassword
+
+  api:
+    build:
+      target: deps      # Use deps stage for faster rebuilds
+    command: npm run dev --workspace=apps/api
+    environment:
+      NODE_ENV: development
+      DATABASE_URL: postgresql://academy_user:devpassword@postgres:5432/mustafa_academy
+      REDIS_URL: redis://:devpassword@redis:6379
+      JWT_ACCESS_SECRET: dev-access-secret-32-chars-minimum
+      JWT_REFRESH_SECRET: dev-refresh-secret-32-chars-minimum
+      COOKIE_SECRET: dev-cookie-secret-16ch
+      ENCRYPTION_KEY: dev-encryption-key-32chars!!
+      LOG_LEVEL: debug
+      CORS_ORIGINS: http://localhost:5173
+    volumes:
+      - ./apps/api/src:/app/apps/api/src:delegated
+      - ./apps/api/prisma:/app/apps/api/prisma:delegated
+    ports:
+      - "3000:3000"
+    deploy:
+      replicas: 1
+
+  web:
+    build:
+      target: builder
+    command: npm run dev --workspace=apps/web -- --host 0.0.0.0
+    environment:
+      VITE_API_URL: http://localhost:3000/api/v1
+    volumes:
+      - ./apps/web/src:/app/apps/web/src:delegated
+    ports:
+      - "5173:5173"
+
+  # Don't run nginx in dev (use Vite dev server directly)
+  nginx:
+    profiles:
+      - production-only
+
+  # BullMQ dashboard for dev
+  bull-board:
+    image: deadly0/bull-board:latest
+    container_name: academy_bullboard
+    restart: unless-stopped
+    environment:
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: devpassword
+    ports:
+      - "3002:3000"
+    networks:
+      - internal
+    depends_on:
+      - redis
+
+  # Adminer for DB management in dev
+  adminer:
+    image: adminer:4-standalone
+    container_name: academy_adminer
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    networks:
+      - internal
+    depends_on:
+      - postgres

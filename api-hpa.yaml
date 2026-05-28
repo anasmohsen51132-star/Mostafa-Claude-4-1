@@ -1,0 +1,95 @@
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: academy-api-hpa
+  namespace: mustafa-academy
+  labels:
+    app.kubernetes.io/name: mustafa-academy
+    app.kubernetes.io/component: api
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: academy-api
+
+  minReplicas: 2
+  maxReplicas: 10
+
+  metrics:
+    # Scale up when CPU exceeds 70%
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+
+    # Scale up when memory exceeds 80%
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 80
+
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 60    # Wait 60s before scaling up again
+      policies:
+        - type: Pods
+          value: 2                       # Add at most 2 pods at a time
+          periodSeconds: 60
+
+    scaleDown:
+      stabilizationWindowSeconds: 300   # Wait 5min before scaling down
+      policies:
+        - type: Pods
+          value: 1                       # Remove 1 pod at a time
+          periodSeconds: 120
+
+---
+# Web HPA — lighter scaling for static Nginx
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: academy-web-hpa
+  namespace: mustafa-academy
+  labels:
+    app.kubernetes.io/name: mustafa-academy
+    app.kubernetes.io/component: web
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: academy-web
+
+  minReplicas: 2
+  maxReplicas: 6
+
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 75
+
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 300
+      policies:
+        - type: Pods
+          value: 1
+          periodSeconds: 120
+
+---
+# ServiceAccount for API (used by deployment)
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: academy-api
+  namespace: mustafa-academy
+  labels:
+    app.kubernetes.io/name: mustafa-academy
+    app.kubernetes.io/component: api
+automountServiceAccountToken: false

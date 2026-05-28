@@ -1,0 +1,27 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: academy-config
+  namespace: mustafa-academy
+  labels:
+    app.kubernetes.io/name: mustafa-academy
+    app.kubernetes.io/component: config
+data:
+  NODE_ENV: "production"
+  PORT: "3000"
+  LOG_LEVEL: "info"
+  LOG_FORMAT: "json"
+  JWT_ACCESS_EXPIRES: "15m"
+  JWT_REFRESH_EXPIRES: "7d"
+  RATE_LIMIT_WINDOW_MS: "900000"
+  RATE_LIMIT_MAX: "100"
+  AUTH_RATE_LIMIT_MAX: "10"
+  BULL_CONCURRENCY: "5"
+  BULL_RETRY_ATTEMPTS: "3"
+  BULL_RETRY_DELAY: "5000"
+  DATABASE_POOL_MAX: "20"
+  DATABASE_POOL_MIN: "2"
+  FAWRY_BASE_URL: "https://www.atfawry.com/ECommerceWeb/Fawry/payments"
+  VODAFONE_BASE_URL: "https://api.vodafone.com.eg/payment/v1"
+  S3_REGION: "me-south-1"
+  MAX_FILE_SIZE_MB: "500"
